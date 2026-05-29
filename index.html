@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>FixFindr · Issue & Solution Vault</title>
+    <title>FixFindr · Issue & Solution Vault (with images)</title>
     <style>
         * {
             margin: 0;
@@ -161,7 +161,7 @@
         }
         .issues-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
             gap: 1.5rem;
             margin: 1.8rem 0 2rem;
         }
@@ -216,6 +216,17 @@
             color: #c2412c;
             transform: scale(1.05);
         }
+        .issue-image {
+            margin: 0.75rem 0;
+            text-align: center;
+        }
+        .issue-image img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            object-fit: cover;
+        }
         .solution-area {
             background: #f8fafc;
             padding: 1rem 1rem;
@@ -234,9 +245,10 @@
         }
         .solution-text {
             color: #1e2a3e;
-            line-height: 1.45;
+            line-height: 1.5;
             font-size: 0.9rem;
             word-break: break-word;
+            white-space: pre-wrap;
         }
         .empty-message {
             grid-column: 1 / -1;
@@ -333,13 +345,13 @@
 <div class="container">
     <div class="header">
         <h1>🔧 Issue & Solution Vault</h1>
-        <div class="sub">Search any problem → instantly recall the fix | Backup & restore across devices</div>
+        <div class="sub">Search any problem → recall the fix | Add images | Multi‑line solutions</div>
     </div>
 
     <div class="search-section">
         <div class="search-wrapper">
             <i>🔍</i>
-            <input type="text" id="searchInput" placeholder="Search by issue name, keywords, or solution details..." autocomplete="off">
+            <input type="text" id="searchInput" placeholder="Search by issue, solution, or image alt..." autocomplete="off">
         </div>
         <div class="action-buttons">
             <button class="btn btn-outline" id="clearSearchBtn">✖ Clear</button>
@@ -356,29 +368,34 @@
     <div id="issuesContainer" class="issues-grid"></div>
 
     <div class="add-section">
-        <div class="form-title"><span>📘</span> Add your own issue & solution</div>
+        <div class="form-title"><span>📘</span> Add new issue (with optional image)</div>
         <div class="form-row">
             <div class="form-group">
                 <label>⚠️ Issue / Problem</label>
                 <input type="text" id="newIssueTitle" placeholder="e.g., 'WiFi drops randomly'">
             </div>
             <div class="form-group">
-                <label>💡 Solution / Fix</label>
-                <textarea id="newIssueSolution" rows="2" placeholder="Describe the fix step by step..."></textarea>
+                <label>🖼️ Image URL (optional)</label>
+                <input type="text" id="newIssueImage" placeholder="https://example.com/diagram.png">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>💡 Solution / Fix (press Enter for new line)</label>
+                <textarea id="newIssueSolution" rows="4" placeholder="Step 1: ...\nStep 2: ..."></textarea>
             </div>
         </div>
         <button class="add-btn" id="addIssueBtn">+ Add to compilation</button>
-        <p style="font-size: 0.7rem; margin-top: 12px; color: #5b6e8c;">✨ Your entries are saved automatically. Use Backup to export, Restore to import on another device.<br>🔐 Passwords are: <strong>Reset defaults → P@ssw0rd</strong> &nbsp;|&nbsp; <strong>Empty list → AdminOctopus</strong></p>
+        <p style="font-size: 0.7rem; margin-top: 12px; color: #5b6e8c;">✨ Image URL can be any direct link (JPG, PNG, GIF). Solutions keep line breaks.<br>🔐 Passwords: <strong>Reset defaults → P@ssw0rd</strong> &nbsp;|&nbsp; <strong>Empty list → AdminOctopus</strong></p>
     </div>
-    <footer>🔎 Smart search — matches issue titles & solution text. Backup saves everything as JSON. Restore replaces current data.</footer>
+    <footer>🔍 Smart search — matches title, solution, and image alt. Use Backup/Restore across devices.</footer>
 </div>
 
 <script>
-    // ---------- PLAIN TEXT PASSWORDS (works immediately) ----------
+    // ---------- PLAIN TEXT PASSWORDS ----------
     const RESET_PASSWORD = "P@ssw0rd";
     const EMPTY_PASSWORD = "AdminOctopus";
 
-    // Session storage for successful password entries (per tab)
     let resetAuth = sessionStorage.getItem('resetAuth') === 'true';
     let emptyAuth = sessionStorage.getItem('emptyAuth') === 'true';
 
@@ -410,20 +427,20 @@
         }
     }
 
-    // ---------- DEFAULT ISSUES ----------
+    // ---------- DEFAULT ISSUES (no images) ----------
     const DEFAULT_ISSUES = [
-        { id: 1001, title: "💻 Windows update stuck at 0%", solution: "Run Windows Update Troubleshooter → Stop WuAuServ & BITS services → Delete SoftwareDistribution folder → restart." },
-        { id: 1002, title: "🌐 WiFi keeps disconnecting every few minutes", solution: "Update wireless adapter driver → Disable 'Allow computer to turn off this device' in power management → Change router channel." },
-        { id: 1003, title: "🐙 Git merge conflict", solution: "Open conflicted files, search '<<<<<<<' → manually keep changes → git add . → git commit -m 'Resolved conflict'." },
-        { id: 1004, title: "📦 npm install / yarn fails with 'ERESOLVE'", solution: "Delete node_modules & package-lock.json → run npm cache clean --force → npm install --legacy-peer-deps" },
-        { id: 1005, title: "💀 Blue Screen of Death (BSOD) 0x0000007B", solution: "Boot into safe mode → run chkdsk /f → update storage drivers → check for corrupted system files with SFC /SCANNOW" },
-        { id: 1006, title: "🖨️ Printer shows offline even when connected", solution: "Set printer as default → clear print queue → restart spooler service (net stop spooler → net start spooler)." },
-        { id: 1007, title: "⚛️ React component not re-rendering after state update", solution: "Ensure useState is used correctly → avoid mutating state directly → use functional updates if previous state matters." },
-        { id: 1008, title: "🌍 CORS policy error in browser API call", solution: "Backend: set Access-Control-Allow-Origin header → or proxy in dev (vite/webpack) → use credentials: 'include' if needed." },
-        { id: 1009, title: "🔋 Laptop battery drains extremely fast", solution: "Reduce screen brightness → disable startup apps → turn off background apps → check battery health report (powercfg /batteryreport)." },
-        { id: 1010, title: "🐍 Python 'ModuleNotFoundError'", solution: "Check virtual environment is activated → pip install missing module → verify PYTHONPATH and sys.path." },
-        { id: 1011, title: "📧 Outlook not sending emails", solution: "Check 'Work Offline' mode → repair .pst file (scanpst.exe) → recreate email profile → verify SMTP settings." },
-        { id: 1012, title: "📁 'Access Denied' folder in Windows", solution: "Take ownership → right-click properties → security → advanced → change owner to current user → grant full control." }
+        { id: 1001, title: "💻 Windows update stuck at 0%", solution: "Run Windows Update Troubleshooter\nStop WuAuServ & BITS services\nDelete SoftwareDistribution folder\nRestart computer", imageUrl: "" },
+        { id: 1002, title: "🌐 WiFi keeps disconnecting every few minutes", solution: "Update wireless adapter driver\nDisable 'Allow computer to turn off this device' in power management\nChange router channel", imageUrl: "" },
+        { id: 1003, title: "🐙 Git merge conflict", solution: "Open conflicted files, search '<<<<<<<'\nManually keep changes\ngit add .\ngit commit -m 'Resolved conflict'", imageUrl: "" },
+        { id: 1004, title: "📦 npm install / yarn fails with 'ERESOLVE'", solution: "Delete node_modules & package-lock.json\nRun npm cache clean --force\nnpm install --legacy-peer-deps", imageUrl: "" },
+        { id: 1005, title: "💀 Blue Screen of Death (BSOD) 0x0000007B", solution: "Boot into safe mode\nRun chkdsk /f\nUpdate storage drivers\nRun SFC /SCANNOW", imageUrl: "" },
+        { id: 1006, title: "🖨️ Printer shows offline even when connected", solution: "Set printer as default\nClear print queue\nRestart spooler service (net stop spooler → net start spooler)", imageUrl: "" },
+        { id: 1007, title: "⚛️ React component not re-rendering after state update", solution: "Ensure useState is used correctly\nAvoid mutating state directly\nUse functional updates if previous state matters", imageUrl: "" },
+        { id: 1008, title: "🌍 CORS policy error in browser API call", solution: "Backend: set Access-Control-Allow-Origin header\nOr proxy in dev (vite/webpack)\nUse credentials: 'include' if needed", imageUrl: "" },
+        { id: 1009, title: "🔋 Laptop battery drains extremely fast", solution: "Reduce screen brightness\nDisable startup apps\nTurn off background apps\nCheck battery health report (powercfg /batteryreport)", imageUrl: "" },
+        { id: 1010, title: "🐍 Python 'ModuleNotFoundError'", solution: "Check virtual environment is activated\npip install missing module\nVerify PYTHONPATH and sys.path", imageUrl: "" },
+        { id: 1011, title: "📧 Outlook not sending emails", solution: "Check 'Work Offline' mode\nRepair .pst file (scanpst.exe)\nRecreate email profile\nVerify SMTP settings", imageUrl: "" },
+        { id: 1012, title: "📁 'Access Denied' folder in Windows", solution: "Take ownership\nRight-click properties → security → advanced\nChange owner to current user\nGrant full control", imageUrl: "" }
     ];
 
     let issuesArray = [];
@@ -435,12 +452,13 @@
             try {
                 const parsed = JSON.parse(stored);
                 if (Array.isArray(parsed)) {
-                    issuesArray = parsed;
+                    // Ensure each issue has imageUrl field (for older backups)
+                    issuesArray = parsed.map(issue => ({ ...issue, imageUrl: issue.imageUrl || "" }));
                     return;
                 }
             } catch(e) {}
         }
-        issuesArray = DEFAULT_ISSUES.map(issue => ({ ...issue }));
+        issuesArray = DEFAULT_ISSUES.map(issue => ({ ...issue, imageUrl: issue.imageUrl || "" }));
     }
 
     function persistIssues() {
@@ -452,17 +470,26 @@
         const term = searchTerm.trim().toLowerCase();
         return issuesArray.filter(issue => 
             issue.title.toLowerCase().includes(term) || 
-            issue.solution.toLowerCase().includes(term)
+            issue.solution.toLowerCase().includes(term) ||
+            (issue.imageUrl && issue.imageUrl.toLowerCase().includes(term))
         );
     }
 
     function escapeHtml(str) {
+        if (!str) return "";
         return str.replace(/[&<>]/g, function(m) {
             if (m === '&') return '&amp;';
             if (m === '<') return '&lt;';
             if (m === '>') return '&gt;';
             return m;
         });
+    }
+
+    function formatSolutionWithBreaks(text) {
+        if (!text) return "";
+        // escape HTML first, then replace newlines with <br>
+        const escaped = escapeHtml(text);
+        return escaped.replace(/\n/g, '<br>');
     }
 
     function render(filteredIssues) {
@@ -475,15 +502,19 @@
         }
         let cardsHtml = '';
         for (let issue of filteredIssues) {
+            const imageHtml = issue.imageUrl && issue.imageUrl.trim() !== "" 
+                ? `<div class="issue-image"><img src="${escapeHtml(issue.imageUrl)}" alt="Issue illustration" loading="lazy" onerror="this.style.display='none'"></div>` 
+                : "";
             cardsHtml += `
                 <div class="issue-card" data-id="${issue.id}">
                     <div class="card-header">
                         <div class="issue-title">${escapeHtml(issue.title)}</div>
                         <button class="delete-btn" data-id="${issue.id}">🗑️</button>
                     </div>
+                    ${imageHtml}
                     <div class="solution-area">
                         <div class="solution-label">⚡ FIX / SOLUTION</div>
-                        <div class="solution-text">${escapeHtml(issue.solution)}</div>
+                        <div class="solution-text">${formatSolutionWithBreaks(issue.solution)}</div>
                     </div>
                 </div>
             `;
@@ -515,23 +546,25 @@
 
     function addNewIssue() {
         const title = document.getElementById('newIssueTitle').value.trim();
-        const solution = document.getElementById('newIssueSolution').value.trim();
+        const solution = document.getElementById('newIssueSolution').value;
+        const imageUrl = document.getElementById('newIssueImage').value.trim();
         if (!title || !solution) {
             alert("Please fill in both issue and solution.");
             return;
         }
         const newId = Date.now() + Math.floor(Math.random() * 10000);
-        issuesArray.push({ id: newId, title, solution });
+        issuesArray.push({ id: newId, title, solution, imageUrl });
         persistIssues();
         document.getElementById('newIssueTitle').value = '';
         document.getElementById('newIssueSolution').value = '';
+        document.getElementById('newIssueImage').value = '';
         refreshUI();
     }
 
     async function resetToDefaults() {
         if (!verifyResetPassword()) return;
         if (confirm("Replace all current issues with the default list? Backup first if needed.")) {
-            issuesArray = DEFAULT_ISSUES.map(issue => ({ ...issue }));
+            issuesArray = DEFAULT_ISSUES.map(issue => ({ ...issue, imageUrl: issue.imageUrl || "" }));
             persistIssues();
             document.getElementById('searchInput').value = '';
             refreshUI();
@@ -580,12 +613,13 @@
                 const imported = JSON.parse(e.target.result);
                 if (!Array.isArray(imported)) throw new Error("Invalid format");
                 for (let item of imported) {
-                    if (!item.title || !item.solution) throw new Error("Missing fields");
+                    if (!item.title || !item.solution) throw new Error("Missing title or solution");
                 }
                 const sanitized = imported.map(item => ({
                     id: item.id && typeof item.id === 'number' ? item.id : Date.now() + Math.random() * 10000,
                     title: String(item.title),
-                    solution: String(item.solution)
+                    solution: String(item.solution),
+                    imageUrl: item.imageUrl ? String(item.imageUrl) : ""
                 }));
                 if (confirm(`Replace current ${issuesArray.length} issues with ${sanitized.length} from backup?`)) {
                     issuesArray = sanitized;
