@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>FixFindr · Issue Vault (Multi‑image + File attachments)</title>
+    <title>FixFindr · Edit issues (password protected)</title>
     <style>
         * {
             margin: 0;
@@ -156,19 +156,23 @@
             border-radius: 2rem;
             word-break: break-word;
         }
-        .delete-btn {
+        .card-buttons {
+            display: flex;
+            gap: 6px;
+        }
+        .edit-btn, .delete-btn {
             background: none;
             border: none;
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             cursor: pointer;
             padding: 5px 8px;
             border-radius: 60px;
-            color: #7e8b9e;
+            transition: 0.2s;
         }
-        .delete-btn:hover {
-            background: #fee2e2;
-            color: #c2412c;
-        }
+        .edit-btn { color: #3b6ea0; }
+        .edit-btn:hover { background: #e0f2fe; }
+        .delete-btn { color: #7e8b9e; }
+        .delete-btn:hover { background: #fee2e2; color: #c2412c; }
         .image-gallery {
             display: flex;
             gap: 8px;
@@ -231,7 +235,7 @@
             border-radius: 2rem;
             color: #b45309;
         }
-        .add-section {
+        .add-section, .edit-modal {
             background: white;
             border-radius: 1.5rem;
             padding: 1.5rem;
@@ -303,7 +307,7 @@
             align-items: center;
             justify-content: center;
         }
-        .add-btn {
+        .add-btn, .save-edit-btn {
             background: #1e3a5f;
             color: white;
             border: none;
@@ -312,6 +316,36 @@
             font-weight: 700;
             cursor: pointer;
             margin-top: 0.5rem;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 2rem;
+        }
+        .modal-content {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
         }
         #restoreFileInput { display: none; }
         footer {
@@ -330,7 +364,7 @@
 <div class="container">
     <div class="header">
         <h1>📚 Issue & Solution Vault</h1>
-        <div class="sub">Multiple images · File attachments · Multi‑line solutions · Backup & restore</div>
+        <div class="sub">Edit any issue (password protected) · Multi‑image · File attachments</div>
     </div>
 
     <div class="search-section">
@@ -375,39 +409,75 @@
             <div id="filePreviewList" class="preview-list"></div>
         </div>
         <button class="add-btn" id="addBtn">+ Save issue</button>
-        <p style="font-size:0.7rem; margin-top:12px">🔐 Reset defaults: <strong>P@ssw0rd</strong> &nbsp;|&nbsp; Empty list: <strong>AdminOctopus</strong><br>Images & files are stored in your backup.</p>
+        <p style="font-size:0.7rem; margin-top:12px">🔐 Edit password: <strong>P@ssw0rd</strong> (same as reset)<br>Empty list: <strong>AdminOctopus</strong><br>Images & files stored in backup.</p>
     </div>
-    <footer>Multiple images and any file type supported. Backup includes everything.</footer>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ Edit issue</h3>
+                <button class="close-modal" id="closeModalBtn">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>Issue title</label>
+                <input type="text" id="editTitle" placeholder="Issue title">
+            </div>
+            <div class="form-group">
+                <label>Solution</label>
+                <textarea id="editSolution" rows="3" placeholder="Solution..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>🖼️ Images</label>
+                <div class="upload-area" id="editImageUploadArea">📸 Add more images</div>
+                <input type="file" id="editImageInput" multiple accept="image/*" style="display:none">
+                <div id="editImagePreviewList" class="preview-list"></div>
+            </div>
+            <div class="form-group">
+                <label>📎 Files</label>
+                <div class="upload-area" id="editFileUploadArea">📁 Add more files</div>
+                <input type="file" id="editFileInput" multiple style="display:none">
+                <div id="editFilePreviewList" class="preview-list"></div>
+            </div>
+            <button class="save-edit-btn" id="saveEditBtn">💾 Save changes</button>
+        </div>
+    </div>
+
+    <footer>🔐 Edit requires password (P@ssw0rd). All changes are saved immediately.</footer>
 </div>
 
 <script>
     // ---------- PASSWORDS ----------
+    const EDIT_PASSWORD = "P@ssw0rd";
     const RESET_PASSWORD = "P@ssw0rd";
     const EMPTY_PASSWORD = "AdminOctopus";
 
     let resetAuth = sessionStorage.getItem('resetAuth') === 'true';
     let emptyAuth = sessionStorage.getItem('emptyAuth') === 'true';
 
+    function verifyPassword(actionName, requiredPassword) {
+        let pwd = prompt(`🔐 Enter password to ${actionName}:`);
+        if (pwd === requiredPassword) return true;
+        alert("Incorrect password.");
+        return false;
+    }
+
     function verifyResetPassword() {
         if (resetAuth) return true;
-        let pwd = prompt("Password for RESET DEFAULTS:");
-        if (pwd === RESET_PASSWORD) {
+        if (verifyPassword("RESET DEFAULTS", RESET_PASSWORD)) {
             resetAuth = true;
             sessionStorage.setItem('resetAuth', 'true');
             return true;
         }
-        alert("Incorrect");
         return false;
     }
     function verifyEmptyPassword() {
         if (emptyAuth) return true;
-        let pwd = prompt("Password for EMPTY LIST:");
-        if (pwd === EMPTY_PASSWORD) {
+        if (verifyPassword("EMPTY LIST", EMPTY_PASSWORD)) {
             emptyAuth = true;
             sessionStorage.setItem('emptyAuth', 'true');
             return true;
         }
-        alert("Incorrect");
         return false;
     }
 
@@ -424,6 +494,9 @@
 
     let currentImages = [];
     let currentFiles = [];
+    let editImages = [];
+    let editFiles = [];
+    let editingIssueId = null;
 
     function loadFromStorage() {
         let stored = localStorage.getItem(STORAGE_KEY);
@@ -465,7 +538,10 @@
                 <div class="issue-card" data-id="${issue.id}">
                     <div class="card-header">
                         <div class="issue-title">${escapeHtml(issue.title)}</div>
-                        <button class="delete-btn" data-id="${issue.id}">🗑️</button>
+                        <div class="card-buttons">
+                            <button class="edit-btn" data-id="${issue.id}">✏️</button>
+                            <button class="delete-btn" data-id="${issue.id}">🗑️</button>
+                        </div>
                     </div>
                     ${imagesHtml}
                     ${filesHtml}
@@ -478,6 +554,7 @@
         }
         container.innerHTML = html;
         countSpan.innerText = `${filtered.length} ${filtered.length===1?'issue':'issues'}`;
+        
         document.querySelectorAll('.delete-btn').forEach(btn => {
             btn.addEventListener('click', e => {
                 let id = parseInt(btn.dataset.id);
@@ -485,6 +562,15 @@
                     issuesArray = issuesArray.filter(i => i.id !== id);
                     persist();
                     refreshUI();
+                }
+            });
+        });
+        
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', async e => {
+                let id = parseInt(btn.dataset.id);
+                if (await verifyPassword("EDIT this issue", EDIT_PASSWORD)) {
+                    openEditModal(id);
                 }
             });
         });
@@ -525,7 +611,7 @@
         alert("Issue added with " + currentImages.length + " images and " + currentFiles.length + " files.");
     }
 
-    // Image handling
+    // Image and file handling for ADD form
     function setupImageUpload() {
         let area = document.getElementById('imageUploadArea');
         let input = document.getElementById('imageInput');
@@ -537,6 +623,7 @@
         };
         input.onchange = e => handleFiles(e.target.files, true);
     }
+    
     function handleFiles(files, isImage) {
         for (let file of files) {
             if (isImage && !file.type.startsWith('image/')) continue;
@@ -561,20 +648,22 @@
             reader.readAsDataURL(file);
         }
     }
+    
     function attachRemoveEvents() {
-        document.querySelectorAll('.preview-item .remove-badge').forEach(el => {
+        document.querySelectorAll('#imagePreviewList .remove-badge').forEach(el => {
             el.onclick = (e) => {
                 e.stopPropagation();
-                let type = el.dataset.type;
-                if (type === 'image') {
-                    let url = el.dataset.url;
-                    currentImages = currentImages.filter(img => img !== url);
-                    el.parentElement.remove();
-                } else {
-                    let name = el.dataset.name;
-                    currentFiles = currentFiles.filter(f => f.name !== name);
-                    el.parentElement.remove();
-                }
+                let url = el.dataset.url;
+                currentImages = currentImages.filter(img => img !== url);
+                el.parentElement.remove();
+            };
+        });
+        document.querySelectorAll('#filePreviewList .remove-badge').forEach(el => {
+            el.onclick = (e) => {
+                e.stopPropagation();
+                let name = el.dataset.name;
+                currentFiles = currentFiles.filter(f => f.name !== name);
+                el.parentElement.remove();
             };
         });
     }
@@ -589,6 +678,127 @@
             handleFiles(e.dataTransfer.files, false);
         };
         input.onchange = e => handleFiles(e.target.files, false);
+    }
+
+    // ---------- EDIT MODAL ----------
+    function openEditModal(issueId) {
+        let issue = issuesArray.find(i => i.id === issueId);
+        if (!issue) return;
+        editingIssueId = issueId;
+        document.getElementById('editTitle').value = issue.title;
+        document.getElementById('editSolution').value = issue.solution;
+        
+        editImages = [...(issue.images || [])];
+        editFiles = [...(issue.files || [])];
+        
+        renderEditPreviews();
+        
+        document.getElementById('editModal').style.display = 'block';
+    }
+    
+    function renderEditPreviews() {
+        let imageContainer = document.getElementById('editImagePreviewList');
+        let fileContainer = document.getElementById('editFilePreviewList');
+        imageContainer.innerHTML = '';
+        fileContainer.innerHTML = '';
+        
+        editImages.forEach((img, idx) => {
+            let div = document.createElement('div');
+            div.className = 'preview-item';
+            div.innerHTML = `<img src="${img}"><div class="remove-badge" data-edit-image-idx="${idx}">✖</div>`;
+            imageContainer.appendChild(div);
+        });
+        
+        editFiles.forEach((file, idx) => {
+            let div = document.createElement('div');
+            div.className = 'preview-item';
+            div.innerHTML = `<span>📄 ${escapeHtml(file.name)}</span><div class="remove-badge" data-edit-file-idx="${idx}">✖</div>`;
+            fileContainer.appendChild(div);
+        });
+        
+        document.querySelectorAll('#editImagePreviewList .remove-badge').forEach(el => {
+            el.onclick = () => {
+                let idx = parseInt(el.dataset.editImageIdx);
+                editImages.splice(idx, 1);
+                renderEditPreviews();
+            };
+        });
+        document.querySelectorAll('#editFilePreviewList .remove-badge').forEach(el => {
+            el.onclick = () => {
+                let idx = parseInt(el.dataset.editFileIdx);
+                editFiles.splice(idx, 1);
+                renderEditPreviews();
+            };
+        });
+    }
+    
+    function setupEditUploads() {
+        let imageArea = document.getElementById('editImageUploadArea');
+        let imageInput = document.getElementById('editImageInput');
+        imageArea.onclick = () => imageInput.click();
+        imageArea.ondragover = e => e.preventDefault();
+        imageArea.ondrop = e => {
+            e.preventDefault();
+            handleEditFiles(e.dataTransfer.files, true);
+        };
+        imageInput.onchange = e => handleEditFiles(e.target.files, true);
+        
+        let fileArea = document.getElementById('editFileUploadArea');
+        let fileInput = document.getElementById('editFileInput');
+        fileArea.onclick = () => fileInput.click();
+        fileArea.ondragover = e => e.preventDefault();
+        fileArea.ondrop = e => {
+            e.preventDefault();
+            handleEditFiles(e.dataTransfer.files, false);
+        };
+        fileInput.onchange = e => handleEditFiles(e.target.files, false);
+    }
+    
+    function handleEditFiles(files, isImage) {
+        for (let file of files) {
+            if (isImage && !file.type.startsWith('image/')) continue;
+            let reader = new FileReader();
+            reader.onload = ev => {
+                let dataUrl = ev.target.result;
+                if (isImage) {
+                    editImages.push(dataUrl);
+                } else {
+                    editFiles.push({ name: file.name, data: dataUrl });
+                }
+                renderEditPreviews();
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+    
+    function saveEdit() {
+        let newTitle = document.getElementById('editTitle').value.trim();
+        let newSolution = document.getElementById('editSolution').value.trim();
+        if (!newTitle || !newSolution) {
+            alert("Title and solution cannot be empty.");
+            return;
+        }
+        let index = issuesArray.findIndex(i => i.id === editingIssueId);
+        if (index !== -1) {
+            issuesArray[index] = {
+                ...issuesArray[index],
+                title: newTitle,
+                solution: newSolution,
+                images: editImages,
+                files: editFiles
+            };
+            persist();
+            refreshUI();
+            closeModal();
+            alert("Issue updated.");
+        }
+    }
+    
+    function closeModal() {
+        document.getElementById('editModal').style.display = 'none';
+        editingIssueId = null;
+        editImages = [];
+        editFiles = [];
     }
 
     async function resetToDefaults() {
@@ -638,6 +848,7 @@
         refreshUI();
         setupImageUpload();
         setupFileUpload();
+        setupEditUploads();
         document.getElementById('addBtn').onclick = addIssue;
         document.getElementById('clearSearchBtn').onclick = () => { document.getElementById('searchInput').value = ''; refreshUI(); };
         document.getElementById('resetDefaultsBtn').onclick = resetToDefaults;
@@ -646,6 +857,9 @@
         document.getElementById('restoreBtn').onclick = () => document.getElementById('restoreFileInput').click();
         document.getElementById('restoreFileInput').onchange = e => { if(e.target.files.length) restoreFromFile(e.target.files[0]); e.target.value = ''; };
         document.getElementById('searchInput').oninput = refreshUI;
+        document.getElementById('closeModalBtn').onclick = closeModal;
+        document.getElementById('saveEditBtn').onclick = saveEdit;
+        window.onclick = e => { if (e.target === document.getElementById('editModal')) closeModal(); };
     }
     init();
 </script>
